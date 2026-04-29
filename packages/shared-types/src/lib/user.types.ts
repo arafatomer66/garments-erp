@@ -42,3 +42,28 @@ export interface UpdateUserDto {
   phone?: string;
   isActive?: boolean;
 }
+
+export interface TenantUser {
+  userId: string;
+  email: string;
+  fullName: string;
+  phone?: string;
+  isActive: boolean;
+  roles: UserRole[];
+  joinedAt: ISODateString;
+}
+
+export interface CreateTenantUserDto {
+  email: string;
+  fullName: string;
+  password: string;
+  phone?: string;
+  roles: UserRole[];
+}
+
+export interface UpdateTenantUserDto {
+  fullName?: string;
+  phone?: string;
+  isActive?: boolean;
+  roles?: UserRole[];
+}

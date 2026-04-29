@@ -100,8 +100,7 @@ export const appRoutes: Route[] = [
       {
         path: 'settings',
         loadComponent: () =>
-          import('./features/placeholder/placeholder.component').then((m) => m.PlaceholderComponent),
-        data: { title: 'Settings' },
+          import('./features/settings/settings.component').then((m) => m.SettingsComponent),
       },
     ],
   },

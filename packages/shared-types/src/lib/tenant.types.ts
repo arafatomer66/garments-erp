@@ -30,3 +30,10 @@ export interface UpdateTenantDto {
   currencyCode?: string;
   timezone?: string;
 }
+
+export interface UpdateTenantSettingsDto {
+  name?: string;
+  country?: string;
+  currencyCode?: string;
+  timezone?: string;
+}
