@@ -24,6 +24,7 @@ import type {
 import { BomService } from './bom.service';
 import { MerchandisingService } from '../merchandising/merchandising.service';
 import { MastersService } from '../masters/masters.service';
+import { PageIntroComponent } from '../../shared/page-intro.component';
 
 @Component({
   selector: 'app-bom',
@@ -43,13 +44,26 @@ import { MastersService } from '../masters/masters.service';
     ConfirmDialogModule,
     TagModule,
     DividerModule,
+    PageIntroComponent,
   ],
   providers: [ConfirmationService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">
+      <app-page-intro
+        title="BOM &amp; Costing"
+        icon="pi-list"
+        description="Build the bill of materials per style and compute the CM/FOB cost sheet that shows your real margin. Recomputes live when fabric or trim prices change."
+        [bullets]="[
+          'Fabric &amp; trim consumption per piece, with wastage %',
+          'CM (cut-and-make) labour + overhead build-up',
+          'FOB price + margin %, in buyer currency',
+          'Costing-vs-actual variance after production'
+        ]"
+        example="For 1 pc of TS-CREW-180GSM: fabric 1.04 + trims 0.10 + CM 0.85 + commercial 0.13 = USD 2.12. FOB 5.65 → margin 62%."
+      ></app-page-intro>
       <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-semibold text-slate-900">BOM &amp; Costing</h1>
+        <h2 class="text-lg font-semibold text-slate-900">Style selection</h2>
         <div class="flex items-center gap-2">
           <label class="text-sm font-medium text-slate-700">Style:</label>
           <p-select

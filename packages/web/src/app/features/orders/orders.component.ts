@@ -20,6 +20,7 @@ import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
+import { PageIntroComponent } from '../../shared/page-intro.component';
 import type {
   Buyer,
   BuyerOrder,
@@ -67,13 +68,26 @@ const STATUS_SEVERITY: Record<BuyerOrderStatus, 'info' | 'warn' | 'success' | 'd
     SelectModule,
     DatePickerModule,
     ConfirmDialogModule,
+    PageIntroComponent,
   ],
   providers: [ConfirmationService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">
+      <app-page-intro
+        title="Orders"
+        icon="pi-shopping-cart"
+        description="Buyer purchase orders with size break, colour combinations, FOB pricing, and ship-window dates. Every downstream module ties to the order line."
+        [bullets]="[
+          'Multi-size / multi-colour quantity matrix',
+          'FOB or CIF pricing in buyer currency',
+          'Status: draft → confirmed → in-production → shipped',
+          'Auto-link to BOM, packing list, and invoice'
+        ]"
+        example="H&amp;M PO-HM-2026-001 for 18,000 pcs of TS-CREW-180GSM, 4 sizes × 3 colours, FOB Chittagong USD 5.65/pc, ship 20–30 Jun."
+      ></app-page-intro>
       <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-semibold text-slate-900">Orders</h1>
+        <h2 class="text-lg font-semibold text-slate-900">Order list</h2>
         <p-button label="New Order" icon="pi pi-plus" (onClick)="openCreate()" />
       </div>
 

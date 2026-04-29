@@ -7,6 +7,7 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { ProgressBarModule } from 'primeng/progressbar';
 import type { AnalyticsOverview } from '@org/shared-types';
 import { AnalyticsApiService } from './analytics.service';
+import { PageIntroComponent } from '../../shared/page-intro.component';
 
 interface LineSeries {
   lineCode: string;
@@ -27,11 +28,24 @@ interface LineSeries {
     TagModule,
     ProgressSpinnerModule,
     ProgressBarModule,
+    PageIntroComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">
-      <h1 class="text-2xl font-semibold text-slate-900">Analytics</h1>
+      <app-page-intro
+        title="Analytics"
+        icon="pi-chart-bar"
+        description="Cross-module KPI dashboards for the MD/owner. One screen, every important number."
+        [bullets]="[
+          'Pipeline value by status — open exposure in USD',
+          'Line efficiency per day per line',
+          'On-time shipment % (rolling 90 days)',
+          'Buyer profitability ranked by margin',
+          'Top styles by units shipped + latest DHU per line'
+        ]"
+        example="MD sees Walmart profit % dropped from 22% → 14% → drills in → fabric prices up 9% but FOB held flat → renegotiation list updated."
+      ></app-page-intro>
 
       <div *ngIf="loading()" class="flex justify-center py-12">
         <p-progressSpinner styleClass="w-8 h-8" />

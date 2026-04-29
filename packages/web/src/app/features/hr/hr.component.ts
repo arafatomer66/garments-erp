@@ -6,6 +6,7 @@ import { HrAttendanceTabComponent } from './attendance.tab';
 import { HrLeaveTabComponent } from './leave.tab';
 import { HrPayrollTabComponent } from './payroll.tab';
 import { HrDepartmentsTabComponent } from './departments.tab';
+import { PageIntroComponent } from '../../shared/page-intro.component';
 
 @Component({
   selector: 'app-hr',
@@ -18,11 +19,24 @@ import { HrDepartmentsTabComponent } from './departments.tab';
     HrLeaveTabComponent,
     HrPayrollTabComponent,
     HrDepartmentsTabComponent,
+    PageIntroComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">
-      <h1 class="text-2xl font-semibold text-slate-900">HR &amp; Payroll</h1>
+      <app-page-intro
+        title="HR &amp; Payroll"
+        icon="pi-users"
+        description="Employees, biometric attendance, leaves, and hybrid skill-grade + piece-rate payroll with BD Labour Act compliance baked in."
+        [bullets]="[
+          'Skill grades 1–7 (BD Wages Board) base + piece-rate bonus',
+          'Overtime 2× per Bangladesh Labour Act, capped 2 hr/day',
+          'Friday weekoff, Eid leave, festival bonus = 1 month basic',
+          'bKash / Nagad / bank payout',
+          'Biometric (ZKTeco) CSV import → attendance compute'
+        ]"
+        example="April PAY-2026-04: 850 employees, gross BDT 84 lakh + OT BDT 6 lakh + Eid bonus BDT 70 lakh. 60% to bKash, 40% to bank."
+      ></app-page-intro>
       <p-card>
         <p-tabs value="employees">
           <p-tablist>

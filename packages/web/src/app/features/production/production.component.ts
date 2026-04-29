@@ -5,6 +5,7 @@ import { HourlyBoardTabComponent } from './hourly-board.tab';
 import { CuttingPlansTabComponent } from './cutting-plans.tab';
 import { SewingLinesTabComponent } from './sewing-lines.tab';
 import { BundlesTabComponent } from './bundles.tab';
+import { PageIntroComponent } from '../../shared/page-intro.component';
 
 @Component({
   selector: 'app-production',
@@ -16,11 +17,23 @@ import { BundlesTabComponent } from './bundles.tab';
     CuttingPlansTabComponent,
     SewingLinesTabComponent,
     BundlesTabComponent,
+    PageIntroComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">
-      <h1 class="text-2xl font-semibold text-slate-900">Production</h1>
+      <app-page-intro
+        title="Production"
+        icon="pi-cog"
+        description="Cutting plan, sewing line setup, hourly board, and bundle/QR tracking. The hourly board is the live nerve-centre of the floor."
+        [bullets]="[
+          'Cutting plan — markers, plies, expected pieces per lay',
+          'Bundle QR codes — style / colour / size / operation',
+          'Sewing line setup with operator-grade assignment',
+          'Hourly target vs actual + line efficiency %'
+        ]"
+        example="18,000 pcs cut over 6 days, bundled in 30s. Line A: 285/300 (95%), Line B: 243/275 (88%) → supervisor rebalances mid-shift."
+      ></app-page-intro>
       <p-card>
         <p-tabs value="board">
           <p-tablist>

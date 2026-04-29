@@ -19,6 +19,7 @@ import type {
 } from '@org/shared-types';
 import { BuyerPortalApiService } from './buyer-portal.service';
 import { MastersService } from '../masters/masters.service';
+import { PageIntroComponent } from '../../shared/page-intro.component';
 
 @Component({
   selector: 'app-buyer-portal',
@@ -27,12 +28,25 @@ import { MastersService } from '../masters/masters.service';
     CommonModule, FormsModule, ReactiveFormsModule,
     CardModule, TableModule, ButtonModule, DialogModule, InputTextModule,
     SelectModule, CheckboxModule, TagModule, ConfirmDialogModule, ToastModule,
+    PageIntroComponent,
   ],
   providers: [ConfirmationService, MessageService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">
-      <h1 class="text-2xl font-semibold text-slate-900">Buyer Portal</h1>
+      <app-page-intro
+        title="Buyer Portal"
+        icon="pi-id-card"
+        description="Read-only view for buyer staff to track their own orders without emailing the merchandiser. Strict ABAC scoping by buyer ID."
+        [bullets]="[
+          'Per-order WIP % (cutting / sewing / finishing / packed)',
+          'Sample status — PP / size-set / photo / approved',
+          'Latest QC AQL outcome',
+          'Latest shipment ETA + B/L',
+          'Strictly scoped — buyer never sees other buyers or factory cost'
+        ]"
+        example="H&amp;M Dhaka office merchandiser logs in → sees H&amp;M's 7 active orders only. Cannot see Zara, Walmart, or factory cost data."
+      ></app-page-intro>
 
       <div *ngIf="summary() as s" class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div class="rounded-lg bg-slate-50 border border-slate-200 p-4">

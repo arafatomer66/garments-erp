@@ -23,6 +23,7 @@ import type {
   UserRole,
 } from '@org/shared-types';
 import { SettingsApiService } from './settings.service';
+import { PageIntroComponent } from '../../shared/page-intro.component';
 
 const COUNTRY_OPTIONS = [
   { label: 'Bangladesh', value: 'BD' },
@@ -59,6 +60,7 @@ const TIMEZONE_OPTIONS = [
     CardModule, TabsModule, TableModule, ButtonModule, DialogModule,
     InputTextModule, SelectModule, MultiSelectModule, TagModule,
     ConfirmDialogModule, ToastModule, ProgressSpinnerModule,
+    PageIntroComponent,
   ],
   providers: [ConfirmationService, MessageService],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -66,7 +68,17 @@ const TIMEZONE_OPTIONS = [
     <p-toast />
     <p-confirmDialog />
     <div class="space-y-4">
-      <h1 class="text-2xl font-semibold text-slate-900">Settings</h1>
+      <app-page-intro
+        title="Settings"
+        icon="pi-cog"
+        description="Tenant configuration, user invites, and role assignment. Owner-only by default."
+        [bullets]="[
+          'Tenant — country, currency, timezone, BIN (VAT no.), legal address',
+          'Users — invite by email, multi-role assignment, deactivate, reset password',
+          'Roles — read-only matrix of all available permissions'
+        ]"
+        example="Owner invites a new accountant fariha@demo.com with role 'accountant'. She can only see Finance + Masters/Buyers; everything else hidden from her sidebar."
+      ></app-page-intro>
 
       <p-card>
         <p-tabs value="tenant">

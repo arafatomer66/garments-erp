@@ -8,6 +8,7 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TabsModule } from 'primeng/tabs';
 import type { CapacityUtilizationRow, ForecastingOverview, OrderBacklogRow } from '@org/shared-types';
 import { ForecastingApiService } from './forecasting.service';
+import { PageIntroComponent } from '../../shared/page-intro.component';
 
 @Component({
   selector: 'app-forecasting',
@@ -15,11 +16,23 @@ import { ForecastingApiService } from './forecasting.service';
   imports: [
     CommonModule, DecimalPipe,
     CardModule, TableModule, TagModule, ProgressBarModule, ProgressSpinnerModule, TabsModule,
+    PageIntroComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">
-      <h1 class="text-2xl font-semibold text-slate-900">Forecasting</h1>
+      <app-page-intro
+        title="Forecasting"
+        icon="pi-chart-line"
+        description="Demand projection (linear regression), capacity utilisation per line, and order-backlog risk flags. Use it to decide whether to take that next Primark order."
+        [bullets]="[
+          '12-month qty history → 3-month forward forecast per buyer',
+          'Line monthly capacity (10 hr × 26 days)',
+          'Booked vs available capacity for next 30 days',
+          'Late / tight / on-track risk flag per order'
+        ]"
+        example="Line A 92% booked for Aug; Line B 70%. Sales takes new Primark order onto Line B at FOB +3% premium for tight schedule."
+      ></app-page-intro>
 
       <div *ngIf="loading()" class="flex justify-center py-12">
         <p-progressSpinner styleClass="w-8 h-8" />

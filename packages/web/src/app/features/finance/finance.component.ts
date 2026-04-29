@@ -7,6 +7,7 @@ import { FinanceBillsTabComponent } from './bills.tab';
 import { FinancePaymentsTabComponent } from './payments.tab';
 import { FinanceBanksTabComponent } from './banks.tab';
 import { FinanceTaxCodesTabComponent } from './tax-codes.tab';
+import { PageIntroComponent } from '../../shared/page-intro.component';
 
 @Component({
   selector: 'app-finance',
@@ -20,11 +21,23 @@ import { FinanceTaxCodesTabComponent } from './tax-codes.tab';
     FinancePaymentsTabComponent,
     FinanceBanksTabComponent,
     FinanceTaxCodesTabComponent,
+    PageIntroComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">
-      <h1 class="text-2xl font-semibold text-slate-900">Finance &amp; VAT</h1>
+      <app-page-intro
+        title="Finance &amp; VAT"
+        icon="pi-dollar"
+        description="Multi-currency AR/AP, bank reconciliation, NBR VAT/AIT, and live costing-vs-actual margin. Built around BD bank flows and tax rules."
+        [bullets]="[
+          'Export AR in USD, local AP in BDT (FX rate per document)',
+          'VAT 15% local, zero-rated export',
+          'AIT 0.50% on export proceeds, source tax 5–10% on supplier payments',
+          'Banks: SCB / HSBC / BRAC / City — ERQ + back-to-back LC accounts'
+        ]"
+        example="Invoice INV-2026-0001 USD 101,700 at FX 110 = BDT 1.12 cr. Bank realises later at FX 112 → FX gain BDT 2.03 lakh booked."
+      ></app-page-intro>
       <p-card>
         <p-tabs value="dashboard">
           <p-tablist>
