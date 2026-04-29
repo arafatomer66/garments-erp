@@ -1114,3 +1114,192 @@ CREATE TRIGGER leave_requests_updated_at BEFORE UPDATE ON "{{SCHEMA}}".leave_req
 DROP TRIGGER IF EXISTS payroll_runs_updated_at ON "{{SCHEMA}}".payroll_runs;
 CREATE TRIGGER payroll_runs_updated_at BEFORE UPDATE ON "{{SCHEMA}}".payroll_runs
     FOR EACH ROW EXECUTE FUNCTION "{{SCHEMA}}".set_updated_at();
+
+CREATE TABLE IF NOT EXISTS "{{SCHEMA}}".fin_accounts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    account_type TEXT NOT NULL CHECK (account_type IN ('asset', 'liability', 'equity', 'income', 'expense')),
+    parent_id UUID,
+    description TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fin_accounts_parent_fk FOREIGN KEY (parent_id) REFERENCES "{{SCHEMA}}".fin_accounts(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS fin_accounts_type_idx ON "{{SCHEMA}}".fin_accounts (account_type);
+
+CREATE TABLE IF NOT EXISTS "{{SCHEMA}}".fin_tax_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    tax_type TEXT NOT NULL CHECK (tax_type IN ('vat', 'ait', 'source_tax', 'withholding', 'other')),
+    rate_percent NUMERIC(7,4) NOT NULL DEFAULT 0,
+    applies_to TEXT NOT NULL DEFAULT 'both' CHECK (applies_to IN ('sales', 'purchase', 'both')),
+    description TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS "{{SCHEMA}}".fin_fx_rates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    rate_date DATE NOT NULL,
+    base_currency VARCHAR(3) NOT NULL,
+    quote_currency VARCHAR(3) NOT NULL,
+    rate NUMERIC(14,6) NOT NULL,
+    source TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS fin_fx_rates_unique ON "{{SCHEMA}}".fin_fx_rates (rate_date, base_currency, quote_currency);
+CREATE INDEX IF NOT EXISTS fin_fx_rates_date_idx ON "{{SCHEMA}}".fin_fx_rates (rate_date);
+
+CREATE TABLE IF NOT EXISTS "{{SCHEMA}}".fin_bank_accounts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code TEXT NOT NULL UNIQUE,
+    bank_name TEXT NOT NULL,
+    branch TEXT,
+    account_number TEXT NOT NULL,
+    account_holder TEXT,
+    swift_code TEXT,
+    routing_number TEXT,
+    currency_code VARCHAR(3) NOT NULL DEFAULT 'BDT',
+    purpose TEXT NOT NULL DEFAULT 'operational' CHECK (purpose IN ('operational', 'export_proceeds', 'erq', 'back_to_back_lc', 'payroll', 'other')),
+    opening_balance NUMERIC(16,2) NOT NULL DEFAULT 0,
+    current_balance NUMERIC(16,2) NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS "{{SCHEMA}}".fin_invoices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    invoice_number TEXT NOT NULL UNIQUE,
+    buyer_id UUID,
+    buyer_order_id UUID,
+    shipment_id UUID,
+    invoice_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    due_date DATE,
+    currency_code VARCHAR(3) NOT NULL DEFAULT 'USD',
+    fx_rate NUMERIC(14,6) NOT NULL DEFAULT 1,
+    subtotal NUMERIC(14,2) NOT NULL DEFAULT 0,
+    tax_total NUMERIC(14,2) NOT NULL DEFAULT 0,
+    total NUMERIC(14,2) NOT NULL DEFAULT 0,
+    amount_paid NUMERIC(14,2) NOT NULL DEFAULT 0,
+    amount_due NUMERIC(14,2) NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'sent', 'partial', 'paid', 'overdue', 'cancelled')),
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fin_invoices_buyer_fk FOREIGN KEY (buyer_id) REFERENCES "{{SCHEMA}}".buyers(id) ON DELETE SET NULL,
+    CONSTRAINT fin_invoices_order_fk FOREIGN KEY (buyer_order_id) REFERENCES "{{SCHEMA}}".buyer_orders(id) ON DELETE SET NULL,
+    CONSTRAINT fin_invoices_ship_fk FOREIGN KEY (shipment_id) REFERENCES "{{SCHEMA}}".shipments(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS fin_invoices_buyer_idx ON "{{SCHEMA}}".fin_invoices (buyer_id);
+CREATE INDEX IF NOT EXISTS fin_invoices_status_idx ON "{{SCHEMA}}".fin_invoices (status);
+
+CREATE TABLE IF NOT EXISTS "{{SCHEMA}}".fin_invoice_lines (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    invoice_id UUID NOT NULL,
+    description TEXT NOT NULL,
+    quantity NUMERIC(14,4) NOT NULL DEFAULT 1,
+    unit_price NUMERIC(14,4) NOT NULL DEFAULT 0,
+    line_total NUMERIC(14,2) NOT NULL DEFAULT 0,
+    tax_code_id UUID,
+    tax_amount NUMERIC(14,2) NOT NULL DEFAULT 0,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fin_invoice_lines_inv_fk FOREIGN KEY (invoice_id) REFERENCES "{{SCHEMA}}".fin_invoices(id) ON DELETE CASCADE,
+    CONSTRAINT fin_invoice_lines_tax_fk FOREIGN KEY (tax_code_id) REFERENCES "{{SCHEMA}}".fin_tax_codes(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS fin_invoice_lines_inv_idx ON "{{SCHEMA}}".fin_invoice_lines (invoice_id);
+
+CREATE TABLE IF NOT EXISTS "{{SCHEMA}}".fin_bills (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    bill_number TEXT NOT NULL UNIQUE,
+    supplier_id UUID,
+    purchase_order_id UUID,
+    bill_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    due_date DATE,
+    currency_code VARCHAR(3) NOT NULL DEFAULT 'BDT',
+    fx_rate NUMERIC(14,6) NOT NULL DEFAULT 1,
+    subtotal NUMERIC(14,2) NOT NULL DEFAULT 0,
+    tax_total NUMERIC(14,2) NOT NULL DEFAULT 0,
+    total NUMERIC(14,2) NOT NULL DEFAULT 0,
+    amount_paid NUMERIC(14,2) NOT NULL DEFAULT 0,
+    amount_due NUMERIC(14,2) NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'received', 'partial', 'paid', 'overdue', 'cancelled')),
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fin_bills_supplier_fk FOREIGN KEY (supplier_id) REFERENCES "{{SCHEMA}}".suppliers(id) ON DELETE SET NULL,
+    CONSTRAINT fin_bills_po_fk FOREIGN KEY (purchase_order_id) REFERENCES "{{SCHEMA}}".purchase_orders(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS fin_bills_supplier_idx ON "{{SCHEMA}}".fin_bills (supplier_id);
+CREATE INDEX IF NOT EXISTS fin_bills_status_idx ON "{{SCHEMA}}".fin_bills (status);
+
+CREATE TABLE IF NOT EXISTS "{{SCHEMA}}".fin_bill_lines (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    bill_id UUID NOT NULL,
+    description TEXT NOT NULL,
+    quantity NUMERIC(14,4) NOT NULL DEFAULT 1,
+    unit_price NUMERIC(14,4) NOT NULL DEFAULT 0,
+    line_total NUMERIC(14,2) NOT NULL DEFAULT 0,
+    tax_code_id UUID,
+    tax_amount NUMERIC(14,2) NOT NULL DEFAULT 0,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fin_bill_lines_bill_fk FOREIGN KEY (bill_id) REFERENCES "{{SCHEMA}}".fin_bills(id) ON DELETE CASCADE,
+    CONSTRAINT fin_bill_lines_tax_fk FOREIGN KEY (tax_code_id) REFERENCES "{{SCHEMA}}".fin_tax_codes(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS fin_bill_lines_bill_idx ON "{{SCHEMA}}".fin_bill_lines (bill_id);
+
+CREATE TABLE IF NOT EXISTS "{{SCHEMA}}".fin_payments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payment_number TEXT NOT NULL UNIQUE,
+    payment_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    direction TEXT NOT NULL CHECK (direction IN ('inbound', 'outbound')),
+    method TEXT NOT NULL DEFAULT 'bank_transfer' CHECK (method IN ('bank_transfer', 'cheque', 'cash', 'lc', 'tt', 'mfs', 'other')),
+    bank_account_id UUID,
+    invoice_id UUID,
+    bill_id UUID,
+    party_name TEXT,
+    currency_code VARCHAR(3) NOT NULL DEFAULT 'BDT',
+    fx_rate NUMERIC(14,6) NOT NULL DEFAULT 1,
+    amount NUMERIC(14,2) NOT NULL,
+    reference_number TEXT,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fin_payments_bank_fk FOREIGN KEY (bank_account_id) REFERENCES "{{SCHEMA}}".fin_bank_accounts(id) ON DELETE SET NULL,
+    CONSTRAINT fin_payments_inv_fk FOREIGN KEY (invoice_id) REFERENCES "{{SCHEMA}}".fin_invoices(id) ON DELETE SET NULL,
+    CONSTRAINT fin_payments_bill_fk FOREIGN KEY (bill_id) REFERENCES "{{SCHEMA}}".fin_bills(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS fin_payments_inv_idx ON "{{SCHEMA}}".fin_payments (invoice_id);
+CREATE INDEX IF NOT EXISTS fin_payments_bill_idx ON "{{SCHEMA}}".fin_payments (bill_id);
+CREATE INDEX IF NOT EXISTS fin_payments_date_idx ON "{{SCHEMA}}".fin_payments (payment_date);
+
+DROP TRIGGER IF EXISTS fin_accounts_updated_at ON "{{SCHEMA}}".fin_accounts;
+CREATE TRIGGER fin_accounts_updated_at BEFORE UPDATE ON "{{SCHEMA}}".fin_accounts
+    FOR EACH ROW EXECUTE FUNCTION "{{SCHEMA}}".set_updated_at();
+
+DROP TRIGGER IF EXISTS fin_tax_codes_updated_at ON "{{SCHEMA}}".fin_tax_codes;
+CREATE TRIGGER fin_tax_codes_updated_at BEFORE UPDATE ON "{{SCHEMA}}".fin_tax_codes
+    FOR EACH ROW EXECUTE FUNCTION "{{SCHEMA}}".set_updated_at();
+
+DROP TRIGGER IF EXISTS fin_bank_accounts_updated_at ON "{{SCHEMA}}".fin_bank_accounts;
+CREATE TRIGGER fin_bank_accounts_updated_at BEFORE UPDATE ON "{{SCHEMA}}".fin_bank_accounts
+    FOR EACH ROW EXECUTE FUNCTION "{{SCHEMA}}".set_updated_at();
+
+DROP TRIGGER IF EXISTS fin_invoices_updated_at ON "{{SCHEMA}}".fin_invoices;
+CREATE TRIGGER fin_invoices_updated_at BEFORE UPDATE ON "{{SCHEMA}}".fin_invoices
+    FOR EACH ROW EXECUTE FUNCTION "{{SCHEMA}}".set_updated_at();
+
+DROP TRIGGER IF EXISTS fin_bills_updated_at ON "{{SCHEMA}}".fin_bills;
+CREATE TRIGGER fin_bills_updated_at BEFORE UPDATE ON "{{SCHEMA}}".fin_bills
+    FOR EACH ROW EXECUTE FUNCTION "{{SCHEMA}}".set_updated_at();
+
+DROP TRIGGER IF EXISTS fin_payments_updated_at ON "{{SCHEMA}}".fin_payments;
+CREATE TRIGGER fin_payments_updated_at BEFORE UPDATE ON "{{SCHEMA}}".fin_payments
+    FOR EACH ROW EXECUTE FUNCTION "{{SCHEMA}}".set_updated_at();

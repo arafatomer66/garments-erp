@@ -12,3 +12,4 @@ export * from './production.types.js';
 export * from './quality.types.js';
 export * from './shipment.types.js';
 export * from './hr.types.js';
+export * from './finance.types.js';

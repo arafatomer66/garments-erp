@@ -1036,6 +1036,317 @@ async function seedTenantData(schemaName: string): Promise<void> {
         );
       }
     }
+
+    // ============= Finance & VAT seed =============
+
+    // Tax codes (BD-specific)
+    const taxCodes: Array<{ code: string; name: string; type: string; rate: number; applies: string; desc: string }> = [
+      { code: 'VAT-15', name: 'VAT 15%', type: 'vat', rate: 15, applies: 'both', desc: 'Standard BD VAT rate (NBR)' },
+      { code: 'VAT-0-EXP', name: 'VAT 0% Export', type: 'vat', rate: 0, applies: 'sales', desc: 'Zero-rated VAT for direct export to buyer' },
+      { code: 'AIT-EXP-0.5', name: 'AIT 0.5% Export', type: 'ait', rate: 0.5, applies: 'sales', desc: 'Advance Income Tax on export proceeds (deducted at source by bank)' },
+      { code: 'SRC-7', name: 'Source Tax 7%', type: 'source_tax', rate: 7, applies: 'purchase', desc: 'TDS on local supplier services per NBR rate schedule' },
+      { code: 'SRC-3', name: 'Source Tax 3%', type: 'source_tax', rate: 3, applies: 'purchase', desc: 'TDS on local supplier goods' },
+    ];
+    for (const tc of taxCodes) {
+      await tx.$executeRawUnsafe(
+        `INSERT INTO fin_tax_codes (code, name, tax_type, rate_percent, applies_to, description, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+         ON CONFLICT (code) DO NOTHING`,
+        tc.code,
+        tc.name,
+        tc.type,
+        tc.rate,
+        tc.applies,
+        tc.desc,
+      );
+    }
+
+    // FX rates (recent USD->BDT)
+    const fxRates: Array<{ date: string; rate: number }> = [
+      { date: '2026-04-01', rate: 109.50 },
+      { date: '2026-04-15', rate: 110.20 },
+      { date: '2026-04-28', rate: 110.45 },
+    ];
+    for (const fx of fxRates) {
+      await tx.$executeRawUnsafe(
+        `INSERT INTO fin_fx_rates (rate_date, base_currency, quote_currency, rate, source)
+         VALUES ($1::date, 'USD', 'BDT', $2, 'Bangladesh Bank')
+         ON CONFLICT (rate_date, base_currency, quote_currency) DO NOTHING`,
+        fx.date,
+        fx.rate,
+      );
+    }
+
+    // Bank accounts (BD banks)
+    const banks: Array<{ code: string; name: string; branch: string; acct: string; ccy: string; purpose: string; opening: number; swift?: string }> = [
+      { code: 'BANK-SCB-USD', name: 'Standard Chartered Bank', branch: 'Gulshan', acct: '01-1234567-01', ccy: 'USD', purpose: 'export_proceeds', opening: 250000, swift: 'SCBLBDDX' },
+      { code: 'BANK-SCB-ERQ', name: 'Standard Chartered Bank', branch: 'Gulshan', acct: '01-1234567-02', ccy: 'USD', purpose: 'erq', opening: 50000, swift: 'SCBLBDDX' },
+      { code: 'BANK-HSBC-BDT', name: 'HSBC Bangladesh', branch: 'Dhaka Main', acct: '002-987654-001', ccy: 'BDT', purpose: 'operational', opening: 15000000, swift: 'HSBCBDDH' },
+      { code: 'BANK-BRAC-BDT', name: 'BRAC Bank', branch: 'Banani', acct: '1501-205678-001', ccy: 'BDT', purpose: 'payroll', opening: 5000000 },
+      { code: 'BANK-CITY-BTB', name: 'City Bank', branch: 'Motijheel', acct: '3101-456789-002', ccy: 'USD', purpose: 'back_to_back_lc', opening: 0, swift: 'CIBLBDDH' },
+    ];
+    for (const b of banks) {
+      await tx.$executeRawUnsafe(
+        `INSERT INTO fin_bank_accounts (code, bank_name, branch, account_number, currency_code, purpose, opening_balance, current_balance, swift_code, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $7, $8, TRUE)
+         ON CONFLICT (code) DO NOTHING`,
+        b.code,
+        b.name,
+        b.branch,
+        b.acct,
+        b.ccy,
+        b.purpose,
+        b.opening,
+        b.swift ?? null,
+      );
+    }
+
+    // Chart of accounts (top-level)
+    const accounts: Array<{ code: string; name: string; type: string }> = [
+      { code: '1000', name: 'Cash & Bank', type: 'asset' },
+      { code: '1100', name: 'Accounts Receivable', type: 'asset' },
+      { code: '1200', name: 'Inventory', type: 'asset' },
+      { code: '2000', name: 'Accounts Payable', type: 'liability' },
+      { code: '2100', name: 'VAT Payable', type: 'liability' },
+      { code: '2200', name: 'AIT Withheld', type: 'liability' },
+      { code: '3000', name: 'Owner Equity', type: 'equity' },
+      { code: '4000', name: 'Sales — Export', type: 'income' },
+      { code: '4100', name: 'Sales — Local', type: 'income' },
+      { code: '5000', name: 'Cost of Goods Sold', type: 'expense' },
+      { code: '6000', name: 'Salaries & Wages', type: 'expense' },
+      { code: '6100', name: 'Utilities', type: 'expense' },
+      { code: '6200', name: 'Bank Charges & FX Loss', type: 'expense' },
+    ];
+    for (const a of accounts) {
+      await tx.$executeRawUnsafe(
+        `INSERT INTO fin_accounts (code, name, account_type, is_active)
+         VALUES ($1, $2, $3, TRUE)
+         ON CONFLICT (code) DO NOTHING`,
+        a.code,
+        a.name,
+        a.type,
+      );
+    }
+
+    // Sample invoices (AR) — pull first 2 buyers with shipped/in-production orders
+    const invExists = await tx.$queryRawUnsafe<{ c: string }[]>(
+      `SELECT COUNT(*)::text AS c FROM fin_invoices`,
+    );
+    if (invExists[0] && Number(invExists[0].c) === 0) {
+      const buyerRows = await tx.$queryRawUnsafe<{ id: string; name: string }[]>(
+        `SELECT b.id, b.name FROM buyers b ORDER BY b.code LIMIT 2`,
+      );
+      const orderRows = await tx.$queryRawUnsafe<{ id: string; buyer_id: string }[]>(
+        `SELECT id, buyer_id FROM buyer_orders ORDER BY created_at DESC LIMIT 2`,
+      );
+      const taxRows = await tx.$queryRawUnsafe<{ id: string; code: string; rate_percent: string }[]>(
+        `SELECT id, code, rate_percent FROM fin_tax_codes WHERE code IN ('VAT-0-EXP', 'AIT-EXP-0.5')`,
+      );
+      const vatExp = taxRows.find((t) => t.code === 'VAT-0-EXP');
+      const aitExp = taxRows.find((t) => t.code === 'AIT-EXP-0.5');
+
+      const invoices = [
+        {
+          number: 'INV-2026-0001',
+          buyer: buyerRows[0],
+          order: orderRows[0],
+          date: '2026-04-15',
+          due: '2026-05-30',
+          desc: 'Polo Shirt — Spring 2026 — 12,000 pcs @ $4.85',
+          qty: 12000,
+          price: 4.85,
+        },
+        {
+          number: 'INV-2026-0002',
+          buyer: buyerRows[1] ?? buyerRows[0],
+          order: orderRows[1] ?? orderRows[0],
+          date: '2026-04-22',
+          due: '2026-06-05',
+          desc: 'Knit T-Shirt — Summer 2026 — 8,500 pcs @ $3.20',
+          qty: 8500,
+          price: 3.20,
+        },
+      ];
+
+      for (const inv of invoices) {
+        if (!inv.buyer) continue;
+        const lineTotal = inv.qty * inv.price;
+        const aitAmount = (lineTotal * 0.5) / 100;
+        const total = lineTotal + aitAmount;
+        const created = await tx.$queryRawUnsafe<{ id: string }[]>(
+          `INSERT INTO fin_invoices (
+              invoice_number, buyer_id, buyer_order_id,
+              invoice_date, due_date, currency_code, fx_rate,
+              subtotal, tax_total, total, amount_due, status, notes)
+           VALUES ($1, $2::uuid, $3::uuid, $4::date, $5::date, 'USD', 110.20,
+                   $6, $7, $8, $8, 'sent', 'Export invoice — VAT 0% / AIT 0.5%')
+           RETURNING id`,
+          inv.number,
+          inv.buyer.id,
+          inv.order?.id ?? null,
+          inv.date,
+          inv.due,
+          lineTotal.toFixed(2),
+          aitAmount.toFixed(2),
+          total.toFixed(2),
+        );
+        const invoiceId = created[0].id;
+        // VAT 0% line
+        await tx.$executeRawUnsafe(
+          `INSERT INTO fin_invoice_lines (invoice_id, description, quantity, unit_price, line_total, tax_code_id, tax_amount, sort_order)
+           VALUES ($1::uuid, $2, $3, $4, $5, $6::uuid, 0, 0)`,
+          invoiceId,
+          inv.desc,
+          inv.qty,
+          inv.price,
+          lineTotal.toFixed(2),
+          vatExp?.id ?? null,
+        );
+        // AIT line (informational, shown as tax_amount on the invoice)
+        if (aitExp) {
+          await tx.$executeRawUnsafe(
+            `INSERT INTO fin_invoice_lines (invoice_id, description, quantity, unit_price, line_total, tax_code_id, tax_amount, sort_order)
+             VALUES ($1::uuid, 'AIT 0.5% (deducted at source by bank)', 1, 0, 0, $2::uuid, $3, 1)`,
+            invoiceId,
+            aitExp.id,
+            aitAmount.toFixed(2),
+          );
+        }
+      }
+    }
+
+    // Sample bills (AP) — local supplier bills in BDT
+    const billExists = await tx.$queryRawUnsafe<{ c: string }[]>(
+      `SELECT COUNT(*)::text AS c FROM fin_bills`,
+    );
+    if (billExists[0] && Number(billExists[0].c) === 0) {
+      const supplierRows = await tx.$queryRawUnsafe<{ id: string; name: string }[]>(
+        `SELECT id, name FROM suppliers ORDER BY code LIMIT 3`,
+      );
+      const poRows = await tx.$queryRawUnsafe<{ id: string; supplier_id: string }[]>(
+        `SELECT id, supplier_id FROM purchase_orders ORDER BY created_at DESC LIMIT 3`,
+      );
+      const vatRow = await tx.$queryRawUnsafe<{ id: string }[]>(
+        `SELECT id FROM fin_tax_codes WHERE code = 'VAT-15' LIMIT 1`,
+      );
+      const vatId = vatRow[0]?.id ?? null;
+
+      const bills = [
+        { number: 'BILL-2026-0001', sup: supplierRows[0], po: poRows[0], date: '2026-04-08', due: '2026-05-08', desc: 'Cotton fabric — 60s combed — 4,800 kg @ ৳520', qty: 4800, price: 520 },
+        { number: 'BILL-2026-0002', sup: supplierRows[1] ?? supplierRows[0], po: poRows[1] ?? poRows[0], date: '2026-04-12', due: '2026-05-12', desc: 'YKK zippers + buttons — bulk', qty: 1, price: 185000 },
+        { number: 'BILL-2026-0003', sup: supplierRows[2] ?? supplierRows[0], po: poRows[2] ?? poRows[0], date: '2026-04-20', due: '2026-05-20', desc: 'Carton boxes + poly bags — packing', qty: 1, price: 92000 },
+      ];
+
+      for (const b of bills) {
+        if (!b.sup) continue;
+        const lineTotal = b.qty * b.price;
+        const taxAmount = (lineTotal * 15) / 100;
+        const total = lineTotal + taxAmount;
+        const created = await tx.$queryRawUnsafe<{ id: string }[]>(
+          `INSERT INTO fin_bills (
+              bill_number, supplier_id, purchase_order_id,
+              bill_date, due_date, currency_code, fx_rate,
+              subtotal, tax_total, total, amount_due, status, notes)
+           VALUES ($1, $2::uuid, $3::uuid, $4::date, $5::date, 'BDT', 1,
+                   $6, $7, $8, $8, 'received', 'Local supplier bill — VAT 15% included')
+           RETURNING id`,
+          b.number,
+          b.sup.id,
+          b.po?.id ?? null,
+          b.date,
+          b.due,
+          lineTotal.toFixed(2),
+          taxAmount.toFixed(2),
+          total.toFixed(2),
+        );
+        await tx.$executeRawUnsafe(
+          `INSERT INTO fin_bill_lines (bill_id, description, quantity, unit_price, line_total, tax_code_id, tax_amount, sort_order)
+           VALUES ($1::uuid, $2, $3, $4, $5, $6::uuid, $7, 0)`,
+          created[0].id,
+          b.desc,
+          b.qty,
+          b.price,
+          lineTotal.toFixed(2),
+          vatId,
+          taxAmount.toFixed(2),
+        );
+      }
+    }
+
+    // Sample payments — partial payment received on first invoice + one bill paid
+    const payExists = await tx.$queryRawUnsafe<{ c: string }[]>(
+      `SELECT COUNT(*)::text AS c FROM fin_payments`,
+    );
+    if (payExists[0] && Number(payExists[0].c) === 0) {
+      const invRow = await tx.$queryRawUnsafe<{ id: string; total: string }[]>(
+        `SELECT id, total FROM fin_invoices WHERE invoice_number = 'INV-2026-0001' LIMIT 1`,
+      );
+      const billRow = await tx.$queryRawUnsafe<{ id: string; total: string }[]>(
+        `SELECT id, total FROM fin_bills WHERE bill_number = 'BILL-2026-0003' LIMIT 1`,
+      );
+      const usdBank = await tx.$queryRawUnsafe<{ id: string }[]>(
+        `SELECT id FROM fin_bank_accounts WHERE code = 'BANK-SCB-USD' LIMIT 1`,
+      );
+      const bdtBank = await tx.$queryRawUnsafe<{ id: string }[]>(
+        `SELECT id FROM fin_bank_accounts WHERE code = 'BANK-HSBC-BDT' LIMIT 1`,
+      );
+
+      if (invRow[0] && usdBank[0]) {
+        const partial = Number(invRow[0].total) * 0.4;
+        await tx.$executeRawUnsafe(
+          `INSERT INTO fin_payments (
+              payment_number, payment_date, direction, method,
+              bank_account_id, invoice_id, party_name,
+              currency_code, fx_rate, amount, reference_number, notes)
+           VALUES ('PMT-2026-0001', DATE '2026-04-25', 'inbound', 'tt',
+                   $1::uuid, $2::uuid, 'Buyer advance — Spring 2026',
+                   'USD', 110.45, $3, 'TT-SCBL-2304251', '40% advance against INV-2026-0001 (Std Chartered TT)')`,
+          usdBank[0].id,
+          invRow[0].id,
+          partial.toFixed(2),
+        );
+        await tx.$executeRawUnsafe(
+          `UPDATE fin_invoices
+              SET amount_paid = $1, amount_due = total - $1,
+                  status = 'partial'
+            WHERE id = $2::uuid`,
+          partial.toFixed(2),
+          invRow[0].id,
+        );
+        await tx.$executeRawUnsafe(
+          `UPDATE fin_bank_accounts SET current_balance = current_balance + $1 WHERE id = $2::uuid`,
+          partial.toFixed(2),
+          usdBank[0].id,
+        );
+      }
+
+      if (billRow[0] && bdtBank[0]) {
+        const total = Number(billRow[0].total);
+        await tx.$executeRawUnsafe(
+          `INSERT INTO fin_payments (
+              payment_number, payment_date, direction, method,
+              bank_account_id, bill_id, party_name,
+              currency_code, fx_rate, amount, reference_number, notes)
+           VALUES ('PMT-2026-0002', DATE '2026-04-26', 'outbound', 'bank_transfer',
+                   $1::uuid, $2::uuid, 'Packing supplier',
+                   'BDT', 1, $3, 'HSBC-OUT-260426', 'Full payment of BILL-2026-0003')`,
+          bdtBank[0].id,
+          billRow[0].id,
+          total.toFixed(2),
+        );
+        await tx.$executeRawUnsafe(
+          `UPDATE fin_bills
+              SET amount_paid = total, amount_due = 0, status = 'paid'
+            WHERE id = $1::uuid`,
+          billRow[0].id,
+        );
+        await tx.$executeRawUnsafe(
+          `UPDATE fin_bank_accounts SET current_balance = current_balance - $1 WHERE id = $2::uuid`,
+          total.toFixed(2),
+          bdtBank[0].id,
+        );
+      }
+    }
   });
 }
 

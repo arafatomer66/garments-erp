@@ -78,6 +78,11 @@ export const appRoutes: Route[] = [
           import('./features/hr/hr.component').then((m) => m.HrComponent),
       },
       {
+        path: 'finance',
+        loadComponent: () =>
+          import('./features/finance/finance.component').then((m) => m.FinanceComponent),
+      },
+      {
         path: 'analytics',
         loadComponent: () =>
           import('./features/placeholder/placeholder.component').then((m) => m.PlaceholderComponent),
