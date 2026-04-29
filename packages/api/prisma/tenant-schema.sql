@@ -1303,3 +1303,102 @@ CREATE TRIGGER fin_bills_updated_at BEFORE UPDATE ON "{{SCHEMA}}".fin_bills
 DROP TRIGGER IF EXISTS fin_payments_updated_at ON "{{SCHEMA}}".fin_payments;
 CREATE TRIGGER fin_payments_updated_at BEFORE UPDATE ON "{{SCHEMA}}".fin_payments
     FOR EACH ROW EXECUTE FUNCTION "{{SCHEMA}}".set_updated_at();
+
+-- ============================================================
+-- Compliance Vault (Accord/RSC/Sedex/BSCI/WRAP/Higg/BGMEA)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS "{{SCHEMA}}".compliance_standards (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL DEFAULT 'social' CHECK (category IN ('social', 'safety', 'environmental', 'quality', 'security', 'other')),
+    issuing_body TEXT,
+    description TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS "{{SCHEMA}}".compliance_audits (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    audit_number TEXT NOT NULL UNIQUE,
+    standard_id UUID NOT NULL,
+    audit_type TEXT NOT NULL DEFAULT 'initial' CHECK (audit_type IN ('initial', 'follow_up', 'surveillance', 'recertification', 'unannounced')),
+    auditor_name TEXT,
+    audit_firm TEXT,
+    audit_date DATE NOT NULL,
+    valid_until DATE,
+    status TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'in_progress', 'passed', 'conditional', 'failed', 'expired', 'cancelled')),
+    rating TEXT,
+    score NUMERIC(6,2),
+    summary TEXT,
+    next_audit_due DATE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT compliance_audits_standard_fk FOREIGN KEY (standard_id) REFERENCES "{{SCHEMA}}".compliance_standards(id) ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS compliance_audits_standard_idx ON "{{SCHEMA}}".compliance_audits (standard_id);
+CREATE INDEX IF NOT EXISTS compliance_audits_valid_until_idx ON "{{SCHEMA}}".compliance_audits (valid_until);
+CREATE INDEX IF NOT EXISTS compliance_audits_status_idx ON "{{SCHEMA}}".compliance_audits (status);
+
+CREATE TABLE IF NOT EXISTS "{{SCHEMA}}".compliance_documents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_number TEXT NOT NULL UNIQUE,
+    standard_id UUID,
+    audit_id UUID,
+    title TEXT NOT NULL,
+    document_type TEXT NOT NULL DEFAULT 'certificate' CHECK (document_type IN ('certificate', 'report', 'policy', 'sop', 'training_record', 'permit', 'license', 'other')),
+    issued_date DATE,
+    expiry_date DATE,
+    file_url TEXT,
+    file_size_bytes BIGINT,
+    mime_type TEXT,
+    notes TEXT,
+    is_archived BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT compliance_documents_standard_fk FOREIGN KEY (standard_id) REFERENCES "{{SCHEMA}}".compliance_standards(id) ON DELETE SET NULL,
+    CONSTRAINT compliance_documents_audit_fk FOREIGN KEY (audit_id) REFERENCES "{{SCHEMA}}".compliance_audits(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS compliance_documents_standard_idx ON "{{SCHEMA}}".compliance_documents (standard_id);
+CREATE INDEX IF NOT EXISTS compliance_documents_audit_idx ON "{{SCHEMA}}".compliance_documents (audit_id);
+CREATE INDEX IF NOT EXISTS compliance_documents_expiry_idx ON "{{SCHEMA}}".compliance_documents (expiry_date);
+
+CREATE TABLE IF NOT EXISTS "{{SCHEMA}}".compliance_findings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    finding_number TEXT NOT NULL UNIQUE,
+    audit_id UUID NOT NULL,
+    severity TEXT NOT NULL DEFAULT 'minor' CHECK (severity IN ('critical', 'major', 'minor', 'observation', 'opportunity')),
+    category TEXT,
+    description TEXT NOT NULL,
+    root_cause TEXT,
+    corrective_action TEXT,
+    responsible_person TEXT,
+    target_close_date DATE,
+    actual_close_date DATE,
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'closed', 'verified', 'overdue')),
+    evidence_url TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT compliance_findings_audit_fk FOREIGN KEY (audit_id) REFERENCES "{{SCHEMA}}".compliance_audits(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS compliance_findings_audit_idx ON "{{SCHEMA}}".compliance_findings (audit_id);
+CREATE INDEX IF NOT EXISTS compliance_findings_status_idx ON "{{SCHEMA}}".compliance_findings (status);
+CREATE INDEX IF NOT EXISTS compliance_findings_target_close_idx ON "{{SCHEMA}}".compliance_findings (target_close_date);
+
+DROP TRIGGER IF EXISTS compliance_standards_updated_at ON "{{SCHEMA}}".compliance_standards;
+CREATE TRIGGER compliance_standards_updated_at BEFORE UPDATE ON "{{SCHEMA}}".compliance_standards
+    FOR EACH ROW EXECUTE FUNCTION "{{SCHEMA}}".set_updated_at();
+
+DROP TRIGGER IF EXISTS compliance_audits_updated_at ON "{{SCHEMA}}".compliance_audits;
+CREATE TRIGGER compliance_audits_updated_at BEFORE UPDATE ON "{{SCHEMA}}".compliance_audits
+    FOR EACH ROW EXECUTE FUNCTION "{{SCHEMA}}".set_updated_at();
+
+DROP TRIGGER IF EXISTS compliance_documents_updated_at ON "{{SCHEMA}}".compliance_documents;
+CREATE TRIGGER compliance_documents_updated_at BEFORE UPDATE ON "{{SCHEMA}}".compliance_documents
+    FOR EACH ROW EXECUTE FUNCTION "{{SCHEMA}}".set_updated_at();
+
+DROP TRIGGER IF EXISTS compliance_findings_updated_at ON "{{SCHEMA}}".compliance_findings;
+CREATE TRIGGER compliance_findings_updated_at BEFORE UPDATE ON "{{SCHEMA}}".compliance_findings
+    FOR EACH ROW EXECUTE FUNCTION "{{SCHEMA}}".set_updated_at();

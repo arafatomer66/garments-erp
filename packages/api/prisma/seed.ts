@@ -1348,6 +1348,175 @@ async function seedTenantData(schemaName: string): Promise<void> {
       }
     }
   });
+
+  // ========== Compliance vault seed ==========
+  await prisma.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe(`SET LOCAL search_path TO "${schemaName}", public`);
+
+    const standardSeeds: Array<[string, string, string, string]> = [
+      ['ACCORD', 'Bangladesh Accord on Fire and Building Safety', 'safety', 'RSC (RMG Sustainability Council)'],
+      ['SEDEX-SMETA', 'Sedex Members Ethical Trade Audit (4-Pillar)', 'social', 'Sedex'],
+      ['BSCI', 'amfori Business Social Compliance Initiative', 'social', 'amfori'],
+      ['WRAP', 'Worldwide Responsible Accredited Production', 'social', 'WRAP'],
+      ['HIGG-FEM', 'Higg Facility Environmental Module', 'environmental', 'Cascale (formerly SAC)'],
+      ['BGMEA-MEM', 'BGMEA Membership Compliance', 'other', 'BGMEA'],
+      ['FIRE-LICENSE', 'Fire Safety License (BNBC)', 'safety', 'Bangladesh Fire Service & Civil Defence'],
+      ['ENV-CLEARANCE', 'Environmental Clearance Certificate', 'environmental', 'Department of Environment, Bangladesh'],
+    ];
+    for (const [code, name, category, body] of standardSeeds) {
+      await tx.$executeRawUnsafe(
+        `INSERT INTO compliance_standards (code, name, category, issuing_body, is_active)
+         VALUES ($1, $2, $3, $4, TRUE)
+         ON CONFLICT (code) DO NOTHING`,
+        code,
+        name,
+        category,
+        body,
+      );
+    }
+
+    const auditSeeds: Array<[string, string, string, string, string, string | null, string, string | null, number | null, string | null]> = [
+      // [auditNumber, standardCode, type, auditDate, validUntil, nextAuditDue, status, rating, score, summary]
+      ['AUDIT-ACC-2026-01', 'ACCORD', 'surveillance', '2026-02-15', '2026-08-15', '2026-08-01', 'passed', 'Compliant', 92, 'Fire and structural inspections passed; minor electrical CAPA issued.'],
+      ['AUDIT-SED-2025-01', 'SEDEX-SMETA', 'recertification', '2025-11-10', '2026-11-10', '2026-10-01', 'passed', 'Compliant', 88, '4-pillar audit; OT records gap noted.'],
+      ['AUDIT-BSCI-2026-01', 'BSCI', 'initial', '2026-04-05', '2028-04-05', '2028-03-01', 'passed', 'B', 80, 'Grade B; CAPA on grievance mechanism documentation.'],
+      ['AUDIT-HIGG-2026-01', 'HIGG-FEM', 'surveillance', '2026-03-20', '2027-03-20', '2027-02-01', 'in_progress', null, null, 'Self-assessment submitted; verification scheduled.'],
+      ['AUDIT-FIRE-2025-01', 'FIRE-LICENSE', 'recertification', '2025-07-01', '2026-06-30', '2026-05-15', 'passed', 'Renewed', null, 'Annual renewal — fire license valid through Jun 2026.'],
+      ['AUDIT-ENV-2025-01', 'ENV-CLEARANCE', 'surveillance', '2025-09-12', '2026-09-12', '2026-08-01', 'conditional', 'B', 75, 'ETP DO levels above limit on 2 days; corrective action filed.'],
+      ['AUDIT-WRAP-2025-01', 'WRAP', 'recertification', '2025-12-01', '2026-12-01', '2026-10-15', 'passed', 'Gold', 95, 'Gold certification renewed for 12 months.'],
+    ];
+    for (const [num, stdCode, type, date, validUntil, nextDue, status, rating, score, summary] of auditSeeds) {
+      await tx.$executeRawUnsafe(
+        `INSERT INTO compliance_audits
+           (audit_number, standard_id, audit_type, auditor_name, audit_firm,
+            audit_date, valid_until, status, rating, score, summary, next_audit_due)
+         SELECT $1, s.id, $2, $3, $4, $5::date, $6::date, $7, $8, $9, $10, $11::date
+           FROM compliance_standards s WHERE s.code = $12
+         ON CONFLICT (audit_number) DO NOTHING`,
+        num,
+        type,
+        'External Lead Auditor',
+        'SGS Bangladesh',
+        date,
+        validUntil,
+        status,
+        rating,
+        score,
+        summary,
+        nextDue,
+        stdCode,
+      );
+    }
+
+    const docSeeds: Array<[string, string, string, string | null, string | null, string | null, string]> = [
+      // [docNumber, title, type, standardCode, issued, expiry, fileUrl]
+      ['DOC-ACC-2026-001', 'Accord Inspection Report Q1-2026', 'report', 'ACCORD', '2026-02-20', '2026-08-15', 's3://garments-erp/compliance/accord-q1-2026.pdf'],
+      ['DOC-SED-2025-001', 'Sedex SMETA Certificate 2025-2026', 'certificate', 'SEDEX-SMETA', '2025-11-15', '2026-11-10', 's3://garments-erp/compliance/sedex-smeta-2025.pdf'],
+      ['DOC-BSCI-2026-001', 'BSCI Audit Report Grade B', 'report', 'BSCI', '2026-04-15', '2028-04-05', 's3://garments-erp/compliance/bsci-2026.pdf'],
+      ['DOC-FIRE-2025-001', 'Fire Safety License (Renewal)', 'license', 'FIRE-LICENSE', '2025-07-01', '2026-06-30', 's3://garments-erp/compliance/fire-license-2025.pdf'],
+      ['DOC-ENV-2025-001', 'Environmental Clearance Certificate', 'permit', 'ENV-CLEARANCE', '2025-09-15', '2026-09-12', 's3://garments-erp/compliance/env-clearance-2025.pdf'],
+      ['DOC-POL-2026-001', 'Anti-Harassment Policy v3', 'policy', 'BSCI', '2026-01-10', null, 's3://garments-erp/compliance/anti-harassment-policy-v3.pdf'],
+      ['DOC-SOP-2026-001', 'Grievance Mechanism SOP', 'sop', 'SEDEX-SMETA', '2026-03-01', null, 's3://garments-erp/compliance/grievance-sop.pdf'],
+      ['DOC-TRN-2026-001', 'Fire Drill Training Record Q1', 'training_record', 'FIRE-LICENSE', '2026-03-15', null, 's3://garments-erp/compliance/fire-drill-q1-2026.pdf'],
+      ['DOC-WRAP-2025-001', 'WRAP Gold Certificate', 'certificate', 'WRAP', '2025-12-05', '2026-12-01', 's3://garments-erp/compliance/wrap-gold-2025.pdf'],
+    ];
+    for (const [num, title, type, stdCode, issued, expiry, fileUrl] of docSeeds) {
+      await tx.$executeRawUnsafe(
+        `INSERT INTO compliance_documents
+           (document_number, standard_id, title, document_type, issued_date, expiry_date, file_url, mime_type)
+         SELECT $1, s.id, $2, $3, $4::date, $5::date, $6, 'application/pdf'
+           FROM compliance_standards s WHERE s.code = $7
+         ON CONFLICT (document_number) DO NOTHING`,
+        num,
+        title,
+        type,
+        issued,
+        expiry,
+        fileUrl,
+        stdCode,
+      );
+    }
+
+    const findingSeeds: Array<[string, string, string, string, string, string, string, string, string]> = [
+      // [findingNumber, auditNumber, severity, category, description, rootCause, correctiveAction, owner, targetClose]
+      [
+        'NCR-2026-001',
+        'AUDIT-ACC-2026-01',
+        'minor',
+        'Electrical Safety',
+        'Two MCB panels in cutting section show signs of overheating; thermal scan flagged.',
+        'Aged contactors past service life',
+        'Replace contactors and schedule quarterly thermal scan',
+        'Eng. Rashid Ahmed (Maintenance Mgr)',
+        '2026-06-15',
+      ],
+      [
+        'NCR-2025-002',
+        'AUDIT-SED-2025-01',
+        'major',
+        'Working Hours',
+        'OT records show 3 workers exceeded 60-hour weekly cap during peak season.',
+        'Order overload during Eid pre-shipment',
+        'Implement OT cap enforcement in HRIS; line balancing review',
+        'Mr. Karim Hossain (HR Mgr)',
+        '2026-02-28',
+      ],
+      [
+        'NCR-2026-002',
+        'AUDIT-BSCI-2026-01',
+        'minor',
+        'Documentation',
+        'Grievance mechanism log not consistently maintained for last quarter.',
+        'No designated owner for log entries',
+        'Assign Compliance Officer; monthly review with HR',
+        'Ms. Nasrin Akter (Compliance Officer)',
+        '2026-07-01',
+      ],
+      [
+        'NCR-2025-003',
+        'AUDIT-ENV-2025-01',
+        'major',
+        'Effluent Treatment',
+        'ETP DO levels above DoE limit on 2025-09-08 and 2025-09-09.',
+        'Aerator failure; backup not engaged in time',
+        'Install redundant aerator, automated alert on DO breach',
+        'Eng. Tahmid Rahman (ETP Engineer)',
+        '2026-05-30',
+      ],
+      [
+        'OBS-2026-001',
+        'AUDIT-HIGG-2026-01',
+        'observation',
+        'Water Usage',
+        'Opportunity to reduce dyehouse water by 12% via reverse-osmosis recycling.',
+        null as unknown as string,
+        'Evaluate RO system vendor quotes',
+        'Eng. Tahmid Rahman (ETP Engineer)',
+        '2026-09-30',
+      ],
+    ];
+    for (const [num, auditNum, severity, category, desc, root, action, owner, targetClose] of findingSeeds) {
+      const status = severity === 'observation' ? 'open' : 'in_progress';
+      await tx.$executeRawUnsafe(
+        `INSERT INTO compliance_findings
+           (finding_number, audit_id, severity, category, description, root_cause,
+            corrective_action, responsible_person, target_close_date, status)
+         SELECT $1, a.id, $2, $3, $4, $5, $6, $7, $8::date, $9
+           FROM compliance_audits a WHERE a.audit_number = $10
+         ON CONFLICT (finding_number) DO NOTHING`,
+        num,
+        severity,
+        category,
+        desc,
+        root,
+        action,
+        owner,
+        targetClose,
+        status,
+        auditNum,
+      );
+    }
+  });
 }
 
 async function main() {

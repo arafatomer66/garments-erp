@@ -13,3 +13,4 @@ export * from './quality.types.js';
 export * from './shipment.types.js';
 export * from './hr.types.js';
 export * from './finance.types.js';
+export * from './compliance.types.js';

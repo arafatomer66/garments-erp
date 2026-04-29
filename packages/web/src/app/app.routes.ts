@@ -83,6 +83,11 @@ export const appRoutes: Route[] = [
           import('./features/finance/finance.component').then((m) => m.FinanceComponent),
       },
       {
+        path: 'compliance',
+        loadComponent: () =>
+          import('./features/compliance/compliance.component').then((m) => m.ComplianceComponent),
+      },
+      {
         path: 'analytics',
         loadComponent: () =>
           import('./features/placeholder/placeholder.component').then((m) => m.PlaceholderComponent),
