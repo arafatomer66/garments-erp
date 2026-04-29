@@ -1,0 +1,122 @@
+// Public schema — platform-level (tenants, users, billing, audit log)
+// Tenant-scoped tables (orders, BOM, production, etc.) live in tenant_<id> schemas
+// and will be defined in a separate schema once tenant migration runner is built.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["public"]
+}
+
+enum TenantStatus {
+  active
+  suspended
+  trial
+  cancelled
+
+  @@schema("public")
+}
+
+enum UserRole {
+  platform_admin
+  tenant_owner
+  tenant_admin
+  merchandiser
+  production_manager
+  qc_manager
+  store_keeper
+  finance
+  hr
+  floor_supervisor
+  viewer
+
+  @@schema("public")
+}
+
+model Tenant {
+  id           String       @id @default(uuid()) @db.Uuid
+  slug         String       @unique
+  name         String
+  schemaName   String       @unique @map("schema_name")
+  status       TenantStatus @default(trial)
+  country      String       @default("BD")
+  currencyCode String       @default("BDT") @map("currency_code")
+  timezone     String       @default("Asia/Dhaka")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  memberships UserMembership[]
+
+  @@map("tenants")
+  @@schema("public")
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  fullName     String   @map("full_name")
+  passwordHash String   @map("password_hash")
+  phone        String?
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  memberships    UserMembership[]
+  refreshTokens  RefreshToken[]
+
+  @@map("users")
+  @@schema("public")
+}
+
+model UserMembership {
+  id        String     @id @default(uuid()) @db.Uuid
+  userId    String     @map("user_id") @db.Uuid
+  tenantId  String     @map("tenant_id") @db.Uuid
+  roles     UserRole[]
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@map("user_memberships")
+  @@schema("public")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @unique @map("token_hash")
+  tenantId  String   @map("tenant_id") @db.Uuid
+  expiresAt DateTime @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+  @@schema("public")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String?  @map("tenant_id") @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  action     String
+  entityType String?  @map("entity_type")
+  entityId   String?  @map("entity_id")
+  metadata   Json?
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId, createdAt])
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+  @@schema("public")
+}
