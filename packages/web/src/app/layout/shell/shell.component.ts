@@ -241,19 +241,6 @@ export class ShellComponent {
     return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase();
   });
 
-  readonly pageTitle = toSignal(
-    this.router.events.pipe(
-      filter((e) => e instanceof NavigationEnd),
-      startWith(null),
-      map(() => {
-        const url = this.router.url.split('?')[0].split('/').filter(Boolean)[0] ?? 'dashboard';
-        const label = this.allItems.find((i) => i.path === '/' + url)?.label;
-        return label ?? this.titleize(url);
-      }),
-    ),
-    { initialValue: 'Dashboard' },
-  );
-
   readonly navGroups: NavGroup[] = [
     {
       title: 'Overview',
@@ -306,6 +293,19 @@ export class ShellComponent {
   private get allItems(): NavItem[] {
     return this.navGroups.flatMap((g) => g.items);
   }
+
+  readonly pageTitle = toSignal(
+    this.router.events.pipe(
+      filter((e) => e instanceof NavigationEnd),
+      startWith(null),
+      map(() => {
+        const url = this.router.url.split('?')[0].split('/').filter(Boolean)[0] ?? 'dashboard';
+        const label = this.allItems.find((i) => i.path === '/' + url)?.label;
+        return label ?? this.titleize(url);
+      }),
+    ),
+    { initialValue: 'Dashboard' },
+  );
 
   private titleize(slug: string): string {
     return slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
