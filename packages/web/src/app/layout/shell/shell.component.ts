@@ -91,6 +91,7 @@ export class ShellComponent {
     { label: 'Analytics', icon: 'pi-chart-bar', path: '/analytics' },
     { label: 'Forecasting', icon: 'pi-chart-line', path: '/forecasting' },
     { label: 'Settings', icon: 'pi-cog', path: '/settings' },
+    { label: 'User Guide', icon: 'pi-book', path: '/user-guide' },
   ];
 
   logout(): void {

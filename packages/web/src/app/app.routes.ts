@@ -107,6 +107,11 @@ export const appRoutes: Route[] = [
         loadComponent: () =>
           import('./features/settings/settings.component').then((m) => m.SettingsComponent),
       },
+      {
+        path: 'user-guide',
+        loadComponent: () =>
+          import('./features/user-guide/user-guide.component').then((m) => m.UserGuideComponent),
+      },
     ],
   },
   { path: '**', redirectTo: '' },
