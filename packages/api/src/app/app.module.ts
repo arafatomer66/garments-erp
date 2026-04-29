@@ -19,6 +19,7 @@ import { HrModule } from '../modules/hr/hr.module';
 import { FinanceModule } from '../modules/finance/finance.module';
 import { ComplianceModule } from '../modules/compliance/compliance.module';
 import { BuyerPortalModule } from '../modules/buyer-portal/buyer-portal.module';
+import { AnalyticsModule } from '../modules/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { BuyerPortalModule } from '../modules/buyer-portal/buyer-portal.module';
     FinanceModule,
     ComplianceModule,
     BuyerPortalModule,
+    AnalyticsModule,
   ],
 })
 export class AppModule {}

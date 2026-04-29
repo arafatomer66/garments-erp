@@ -95,8 +95,7 @@ export const appRoutes: Route[] = [
       {
         path: 'analytics',
         loadComponent: () =>
-          import('./features/placeholder/placeholder.component').then((m) => m.PlaceholderComponent),
-        data: { title: 'Analytics' },
+          import('./features/analytics/analytics.component').then((m) => m.AnalyticsComponent),
       },
       {
         path: 'settings',
