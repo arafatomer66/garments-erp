@@ -89,6 +89,7 @@ export class ShellComponent {
     { label: 'Compliance', icon: 'pi-shield', path: '/compliance' },
     { label: 'Buyer Portal', icon: 'pi-id-card', path: '/buyer-portal' },
     { label: 'Analytics', icon: 'pi-chart-bar', path: '/analytics' },
+    { label: 'Forecasting', icon: 'pi-chart-line', path: '/forecasting' },
     { label: 'Settings', icon: 'pi-cog', path: '/settings' },
   ];
 

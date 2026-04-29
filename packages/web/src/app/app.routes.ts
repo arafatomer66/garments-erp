@@ -98,6 +98,11 @@ export const appRoutes: Route[] = [
           import('./features/analytics/analytics.component').then((m) => m.AnalyticsComponent),
       },
       {
+        path: 'forecasting',
+        loadComponent: () =>
+          import('./features/forecasting/forecasting.component').then((m) => m.ForecastingComponent),
+      },
+      {
         path: 'settings',
         loadComponent: () =>
           import('./features/settings/settings.component').then((m) => m.SettingsComponent),
