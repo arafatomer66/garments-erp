@@ -9,4 +9,120 @@ body {
   height: 100%;
   margin: 0;
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #0f172a;
+  background: #f8fafc;
 }
+
+/* === Premium scrollbars (subtle, never the default chunky one) === */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.25);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.45); background-clip: content-box; }
+
+/* === PrimeNG polish overrides === */
+
+/* Tabs — flatter, more refined */
+.p-tablist .p-tab {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: color 150ms ease, background 150ms ease;
+}
+
+/* Buttons — slightly tighter, premium tone */
+.p-button {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  border-radius: 0.5rem;
+  transition: transform 80ms ease, box-shadow 200ms ease;
+}
+.p-button:active { transform: translateY(1px); }
+
+/* Cards */
+.p-card {
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(15, 23, 42, 0.05);
+}
+.p-card .p-card-body { padding: 1.25rem; }
+
+/* Tables */
+.p-datatable .p-datatable-thead > tr > th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e2e8f0;
+}
+.p-datatable .p-datatable-tbody > tr {
+  transition: background 80ms ease;
+}
+.p-datatable .p-datatable-tbody > tr:hover {
+  background: #f1f5f9;
+}
+
+/* Inputs — premium border treatment */
+.p-inputtext, .p-select, .p-multiselect, .p-datepicker {
+  border-radius: 0.5rem;
+  transition: box-shadow 150ms ease, border-color 150ms ease;
+}
+.p-inputtext:focus, .p-select.p-focus, .p-multiselect.p-focus {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Tag pills — softer */
+.p-tag {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  padding: 0.125rem 0.625rem;
+}
+
+/* Sidebar nav active state */
+.nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  margin: 0.125rem 0.625rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: #cbd5e1;
+  transition: background 120ms ease, color 120ms ease;
+}
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+}
+.nav-link.active {
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.18) 0%, rgba(37, 99, 235, 0.06) 100%);
+  color: #ffffff;
+  font-weight: 600;
+}
+.nav-link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
+  border-radius: 0 999px 999px 0;
+}
+.nav-link i {
+  font-size: 1rem;
+  width: 1.25rem;
+  text-align: center;
+  opacity: 0.8;
+}
+.nav-link.active i { opacity: 1; }
