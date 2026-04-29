@@ -5,7 +5,7 @@ import type { Request, Response, NextFunction } from 'express';
 import type { JwtPayload } from '@org/shared-types';
 import { tenantStorage } from './tenant-context';
 
-const PUBLIC_PATHS = ['/api/auth/login', '/api/auth/signup', '/api/auth/refresh', '/api/health'];
+const PUBLIC_PATHS = ['/auth/login', '/auth/signup', '/auth/refresh', '/health'];
 
 @Injectable()
 export class TenancyMiddleware implements NestMiddleware {
@@ -15,8 +15,8 @@ export class TenancyMiddleware implements NestMiddleware {
   ) {}
 
   use(req: Request, res: Response, next: NextFunction): void {
-    const path = req.path;
-    if (PUBLIC_PATHS.some((p) => path.startsWith(p))) {
+    const url = req.originalUrl ?? req.url;
+    if (PUBLIC_PATHS.some((p) => url.startsWith(p) || url.startsWith(`/api${p}`))) {
       return next();
     }
 

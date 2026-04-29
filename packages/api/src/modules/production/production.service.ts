@@ -31,7 +31,7 @@ export class ProductionService extends TenantRepository {
   async listPlans(): Promise<CuttingPlan[]> {
     const rows = await this.query<Record<string, unknown>>(
       `SELECT cp.*, s.code AS style_code, s.name AS style_name,
-              bo.order_number AS buyer_order_number, sl.lot_number AS fabric_lot_number
+              bo.po_number AS buyer_order_number, sl.lot_number AS fabric_lot_number
          FROM cutting_plans cp
          JOIN styles s ON s.id = cp.style_id
          LEFT JOIN buyer_orders bo ON bo.id = cp.buyer_order_id
@@ -50,7 +50,7 @@ export class ProductionService extends TenantRepository {
   async findPlan(id: string): Promise<CuttingPlan> {
     const rows = await this.query<Record<string, unknown>>(
       `SELECT cp.*, s.code AS style_code, s.name AS style_name,
-              bo.order_number AS buyer_order_number, sl.lot_number AS fabric_lot_number
+              bo.po_number AS buyer_order_number, sl.lot_number AS fabric_lot_number
          FROM cutting_plans cp
          JOIN styles s ON s.id = cp.style_id
          LEFT JOIN buyer_orders bo ON bo.id = cp.buyer_order_id

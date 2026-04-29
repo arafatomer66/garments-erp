@@ -434,7 +434,7 @@ export class QualityService extends TenantRepository {
   async listAqlInspections(): Promise<AqlInspection[]> {
     const rows = await this.query<Record<string, unknown>>(
       `SELECT aqi.*, cp.plan_number AS cutting_plan_number,
-              st.code AS style_code, bo.order_number AS buyer_order_number
+              st.code AS style_code, bo.po_number AS buyer_order_number
          FROM aql_inspections aqi
          LEFT JOIN cutting_plans cp ON cp.id = aqi.cutting_plan_id
          LEFT JOIN styles st ON st.id = aqi.style_id
@@ -520,7 +520,7 @@ export class QualityService extends TenantRepository {
   async findAqlInspection(id: string): Promise<AqlInspection> {
     const rows = await this.query<Record<string, unknown>>(
       `SELECT aqi.*, cp.plan_number AS cutting_plan_number,
-              st.code AS style_code, bo.order_number AS buyer_order_number
+              st.code AS style_code, bo.po_number AS buyer_order_number
          FROM aql_inspections aqi
          LEFT JOIN cutting_plans cp ON cp.id = aqi.cutting_plan_id
          LEFT JOIN styles st ON st.id = aqi.style_id

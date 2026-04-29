@@ -482,7 +482,7 @@ async function seedTenantData(schemaName: string): Promise<void> {
         `SELECT id FROM stock_lots WHERE lot_number = 'LOT-FAB-2026-0001' LIMIT 1`,
       );
       const buyerOrder = await tx.$queryRawUnsafe<{ id: string }[]>(
-        `SELECT id FROM buyer_orders WHERE order_number = 'PO-HM-2026-001' LIMIT 1`,
+        `SELECT id FROM buyer_orders WHERE po_number = 'PO-HM-2026-001' LIMIT 1`,
       );
 
       // Cutting plan + items
@@ -1179,7 +1179,7 @@ async function seedTenantData(schemaName: string): Promise<void> {
               invoice_date, due_date, currency_code, fx_rate,
               subtotal, tax_total, total, amount_due, status, notes)
            VALUES ($1, $2::uuid, $3::uuid, $4::date, $5::date, 'USD', 110.20,
-                   $6, $7, $8, $8, 'sent', 'Export invoice — VAT 0% / AIT 0.5%')
+                   $6::numeric, $7::numeric, $8::numeric, $8::numeric, 'sent', 'Export invoice — VAT 0% / AIT 0.5%')
            RETURNING id`,
           inv.number,
           inv.buyer.id,
@@ -1194,7 +1194,7 @@ async function seedTenantData(schemaName: string): Promise<void> {
         // VAT 0% line
         await tx.$executeRawUnsafe(
           `INSERT INTO fin_invoice_lines (invoice_id, description, quantity, unit_price, line_total, tax_code_id, tax_amount, sort_order)
-           VALUES ($1::uuid, $2, $3, $4, $5, $6::uuid, 0, 0)`,
+           VALUES ($1::uuid, $2, $3, $4, $5::numeric, $6::uuid, 0, 0)`,
           invoiceId,
           inv.desc,
           inv.qty,
@@ -1206,7 +1206,7 @@ async function seedTenantData(schemaName: string): Promise<void> {
         if (aitExp) {
           await tx.$executeRawUnsafe(
             `INSERT INTO fin_invoice_lines (invoice_id, description, quantity, unit_price, line_total, tax_code_id, tax_amount, sort_order)
-             VALUES ($1::uuid, 'AIT 0.5% (deducted at source by bank)', 1, 0, 0, $2::uuid, $3, 1)`,
+             VALUES ($1::uuid, 'AIT 0.5% (deducted at source by bank)', 1, 0, 0, $2::uuid, $3::numeric, 1)`,
             invoiceId,
             aitExp.id,
             aitAmount.toFixed(2),
@@ -1248,7 +1248,7 @@ async function seedTenantData(schemaName: string): Promise<void> {
               bill_date, due_date, currency_code, fx_rate,
               subtotal, tax_total, total, amount_due, status, notes)
            VALUES ($1, $2::uuid, $3::uuid, $4::date, $5::date, 'BDT', 1,
-                   $6, $7, $8, $8, 'received', 'Local supplier bill — VAT 15% included')
+                   $6::numeric, $7::numeric, $8::numeric, $8::numeric, 'received', 'Local supplier bill — VAT 15% included')
            RETURNING id`,
           b.number,
           b.sup.id,
@@ -1261,7 +1261,7 @@ async function seedTenantData(schemaName: string): Promise<void> {
         );
         await tx.$executeRawUnsafe(
           `INSERT INTO fin_bill_lines (bill_id, description, quantity, unit_price, line_total, tax_code_id, tax_amount, sort_order)
-           VALUES ($1::uuid, $2, $3, $4, $5, $6::uuid, $7, 0)`,
+           VALUES ($1::uuid, $2, $3, $4, $5::numeric, $6::uuid, $7::numeric, 0)`,
           created[0].id,
           b.desc,
           b.qty,
@@ -1300,21 +1300,21 @@ async function seedTenantData(schemaName: string): Promise<void> {
               currency_code, fx_rate, amount, reference_number, notes)
            VALUES ('PMT-2026-0001', DATE '2026-04-25', 'inbound', 'tt',
                    $1::uuid, $2::uuid, 'Buyer advance — Spring 2026',
-                   'USD', 110.45, $3, 'TT-SCBL-2304251', '40% advance against INV-2026-0001 (Std Chartered TT)')`,
+                   'USD', 110.45, $3::numeric, 'TT-SCBL-2304251', '40% advance against INV-2026-0001 (Std Chartered TT)')`,
           usdBank[0].id,
           invRow[0].id,
           partial.toFixed(2),
         );
         await tx.$executeRawUnsafe(
           `UPDATE fin_invoices
-              SET amount_paid = $1, amount_due = total - $1,
+              SET amount_paid = $1::numeric, amount_due = total - $1::numeric,
                   status = 'partial'
             WHERE id = $2::uuid`,
           partial.toFixed(2),
           invRow[0].id,
         );
         await tx.$executeRawUnsafe(
-          `UPDATE fin_bank_accounts SET current_balance = current_balance + $1 WHERE id = $2::uuid`,
+          `UPDATE fin_bank_accounts SET current_balance = current_balance + $1::numeric WHERE id = $2::uuid`,
           partial.toFixed(2),
           usdBank[0].id,
         );
@@ -1329,7 +1329,7 @@ async function seedTenantData(schemaName: string): Promise<void> {
               currency_code, fx_rate, amount, reference_number, notes)
            VALUES ('PMT-2026-0002', DATE '2026-04-26', 'outbound', 'bank_transfer',
                    $1::uuid, $2::uuid, 'Packing supplier',
-                   'BDT', 1, $3, 'HSBC-OUT-260426', 'Full payment of BILL-2026-0003')`,
+                   'BDT', 1, $3::numeric, 'HSBC-OUT-260426', 'Full payment of BILL-2026-0003')`,
           bdtBank[0].id,
           billRow[0].id,
           total.toFixed(2),
@@ -1341,7 +1341,7 @@ async function seedTenantData(schemaName: string): Promise<void> {
           billRow[0].id,
         );
         await tx.$executeRawUnsafe(
-          `UPDATE fin_bank_accounts SET current_balance = current_balance - $1 WHERE id = $2::uuid`,
+          `UPDATE fin_bank_accounts SET current_balance = current_balance - $1::numeric WHERE id = $2::uuid`,
           total.toFixed(2),
           bdtBank[0].id,
         );

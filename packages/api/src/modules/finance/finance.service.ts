@@ -278,7 +278,7 @@ export class FinanceService extends TenantRepository {
 
   async listInvoices(): Promise<FinInvoice[]> {
     const rows = await this.query<Record<string, unknown>>(
-      `SELECT i.*, b.name AS buyer_name, bo.order_number AS buyer_order_number
+      `SELECT i.*, b.name AS buyer_name, bo.po_number AS buyer_order_number
          FROM fin_invoices i
          LEFT JOIN buyers b ON b.id = i.buyer_id
          LEFT JOIN buyer_orders bo ON bo.id = i.buyer_order_id
@@ -289,7 +289,7 @@ export class FinanceService extends TenantRepository {
 
   async findInvoice(id: string): Promise<FinInvoice> {
     const rows = await this.query<Record<string, unknown>>(
-      `SELECT i.*, b.name AS buyer_name, bo.order_number AS buyer_order_number
+      `SELECT i.*, b.name AS buyer_name, bo.po_number AS buyer_order_number
          FROM fin_invoices i
          LEFT JOIN buyers b ON b.id = i.buyer_id
          LEFT JOIN buyer_orders bo ON bo.id = i.buyer_order_id
@@ -374,7 +374,7 @@ export class FinanceService extends TenantRepository {
 
   private async findInvoiceTx(tx: TenantTx, id: string): Promise<FinInvoice> {
     const rows = await tx.query<Record<string, unknown>>(
-      `SELECT i.*, b.name AS buyer_name, bo.order_number AS buyer_order_number
+      `SELECT i.*, b.name AS buyer_name, bo.po_number AS buyer_order_number
          FROM fin_invoices i
          LEFT JOIN buyers b ON b.id = i.buyer_id
          LEFT JOIN buyer_orders bo ON bo.id = i.buyer_order_id

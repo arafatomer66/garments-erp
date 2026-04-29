@@ -52,7 +52,7 @@ export class ShipmentService extends TenantRepository {
 
   async listPackingLists(): Promise<PackingList[]> {
     const lists = await this.query<Record<string, unknown>>(
-      `SELECT pl.*, bo.order_number AS buyer_order_number, st.code AS style_code
+      `SELECT pl.*, bo.po_number AS buyer_order_number, st.code AS style_code
          FROM packing_lists pl
          LEFT JOIN buyer_orders bo ON bo.id = pl.buyer_order_id
          LEFT JOIN styles st ON st.id = pl.style_id
@@ -182,7 +182,7 @@ export class ShipmentService extends TenantRepository {
 
   private async loadPackingListInTx(tx: TenantTx, id: string): Promise<PackingList> {
     const rows = await tx.query<Record<string, unknown>>(
-      `SELECT pl.*, bo.order_number AS buyer_order_number, st.code AS style_code
+      `SELECT pl.*, bo.po_number AS buyer_order_number, st.code AS style_code
          FROM packing_lists pl
          LEFT JOIN buyer_orders bo ON bo.id = pl.buyer_order_id
          LEFT JOIN styles st ON st.id = pl.style_id
@@ -240,7 +240,7 @@ export class ShipmentService extends TenantRepository {
 
   async listShipments(): Promise<Shipment[]> {
     const rows = await this.query<Record<string, unknown>>(
-      `SELECT s.*, bo.order_number AS buyer_order_number, pl.pl_number AS packing_list_number
+      `SELECT s.*, bo.po_number AS buyer_order_number, pl.pl_number AS packing_list_number
          FROM shipments s
          LEFT JOIN buyer_orders bo ON bo.id = s.buyer_order_id
          LEFT JOIN packing_lists pl ON pl.id = s.packing_list_id
@@ -282,7 +282,7 @@ export class ShipmentService extends TenantRepository {
 
   async findShipment(id: string): Promise<Shipment> {
     const rows = await this.query<Record<string, unknown>>(
-      `SELECT s.*, bo.order_number AS buyer_order_number, pl.pl_number AS packing_list_number
+      `SELECT s.*, bo.po_number AS buyer_order_number, pl.pl_number AS packing_list_number
          FROM shipments s
          LEFT JOIN buyer_orders bo ON bo.id = s.buyer_order_id
          LEFT JOIN packing_lists pl ON pl.id = s.packing_list_id
@@ -342,7 +342,7 @@ export class ShipmentService extends TenantRepository {
 
   async listExportDocuments(): Promise<ExportDocument[]> {
     const rows = await this.query<Record<string, unknown>>(
-      `SELECT ed.*, s.shipment_number AS shipment_number_join, bo.order_number AS buyer_order_number
+      `SELECT ed.*, s.shipment_number AS shipment_number_join, bo.po_number AS buyer_order_number
          FROM export_documents ed
          LEFT JOIN shipments s ON s.id = ed.shipment_id
          LEFT JOIN buyer_orders bo ON bo.id = ed.buyer_order_id
@@ -380,7 +380,7 @@ export class ShipmentService extends TenantRepository {
 
   async findExportDocument(id: string): Promise<ExportDocument> {
     const rows = await this.query<Record<string, unknown>>(
-      `SELECT ed.*, s.shipment_number AS shipment_number_join, bo.order_number AS buyer_order_number
+      `SELECT ed.*, s.shipment_number AS shipment_number_join, bo.po_number AS buyer_order_number
          FROM export_documents ed
          LEFT JOIN shipments s ON s.id = ed.shipment_id
          LEFT JOIN buyer_orders bo ON bo.id = ed.buyer_order_id
