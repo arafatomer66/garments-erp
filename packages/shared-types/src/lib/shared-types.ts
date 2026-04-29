@@ -14,3 +14,4 @@ export * from './shipment.types.js';
 export * from './hr.types.js';
 export * from './finance.types.js';
 export * from './compliance.types.js';
+export * from './buyer-portal.types.js';

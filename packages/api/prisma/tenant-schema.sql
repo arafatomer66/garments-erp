@@ -1402,3 +1402,44 @@ CREATE TRIGGER compliance_documents_updated_at BEFORE UPDATE ON "{{SCHEMA}}".com
 DROP TRIGGER IF EXISTS compliance_findings_updated_at ON "{{SCHEMA}}".compliance_findings;
 CREATE TRIGGER compliance_findings_updated_at BEFORE UPDATE ON "{{SCHEMA}}".compliance_findings
     FOR EACH ROW EXECUTE FUNCTION "{{SCHEMA}}".set_updated_at();
+
+-- ============================================================
+-- Buyer Portal (read-only access for buyer staff)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS "{{SCHEMA}}".buyer_portal_users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    buyer_id UUID NOT NULL,
+    full_name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    designation TEXT,
+    phone TEXT,
+    can_view_orders BOOLEAN NOT NULL DEFAULT TRUE,
+    can_view_samples BOOLEAN NOT NULL DEFAULT TRUE,
+    can_view_production BOOLEAN NOT NULL DEFAULT TRUE,
+    can_view_quality BOOLEAN NOT NULL DEFAULT FALSE,
+    can_view_shipments BOOLEAN NOT NULL DEFAULT TRUE,
+    can_view_invoices BOOLEAN NOT NULL DEFAULT FALSE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    last_login_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT buyer_portal_users_buyer_fk FOREIGN KEY (buyer_id) REFERENCES "{{SCHEMA}}".buyers(id) ON DELETE CASCADE,
+    CONSTRAINT buyer_portal_users_email_uniq UNIQUE (email)
+);
+CREATE INDEX IF NOT EXISTS buyer_portal_users_buyer_idx ON "{{SCHEMA}}".buyer_portal_users (buyer_id);
+
+CREATE TABLE IF NOT EXISTS "{{SCHEMA}}".buyer_portal_invites (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    portal_user_id UUID NOT NULL,
+    invite_token TEXT NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    accepted_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT buyer_portal_invites_user_fk FOREIGN KEY (portal_user_id) REFERENCES "{{SCHEMA}}".buyer_portal_users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS buyer_portal_invites_user_idx ON "{{SCHEMA}}".buyer_portal_invites (portal_user_id);
+
+DROP TRIGGER IF EXISTS buyer_portal_users_updated_at ON "{{SCHEMA}}".buyer_portal_users;
+CREATE TRIGGER buyer_portal_users_updated_at BEFORE UPDATE ON "{{SCHEMA}}".buyer_portal_users
+    FOR EACH ROW EXECUTE FUNCTION "{{SCHEMA}}".set_updated_at();

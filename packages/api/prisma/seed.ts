@@ -1517,6 +1517,54 @@ async function seedTenantData(schemaName: string): Promise<void> {
       );
     }
   });
+
+  // ========== Buyer Portal seed ==========
+  await prisma.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe(`SET LOCAL search_path TO "${schemaName}", public`);
+
+    const portalSeeds: Array<[string, string, string, string, string, boolean]> = [
+      // [buyerCode, fullName, email, designation, phone, canViewInvoices]
+      ['BUY-001', 'Anders Lindqvist', 'anders.l@hm.example', 'Senior Merchandiser', '+46 70 123 4567', false],
+      ['BUY-001', 'Karin Olsson', 'karin.o@hm.example', 'Production Manager', '+46 70 765 4321', true],
+      ['BUY-002', 'Janet Reeves', 'janet.r@walmart.example', 'Sourcing Lead', '+1 479 555 0144', false],
+      ['BUY-003', 'Carlos Mendez', 'carlos.m@inditex.example', 'Regional Buyer (South Asia)', '+34 981 555 020', false],
+    ];
+
+    for (const [code, name, email, designation, phone, canInvoices] of portalSeeds) {
+      await tx.$executeRawUnsafe(
+        `INSERT INTO buyer_portal_users
+           (buyer_id, full_name, email, designation, phone, can_view_invoices)
+         SELECT b.id, $1, $2, $3, $4, $5
+           FROM buyers b WHERE b.code = $6
+         ON CONFLICT (email) DO NOTHING`,
+        name,
+        email,
+        designation,
+        phone,
+        canInvoices,
+        code,
+      );
+
+      // Issue an invite for the just-inserted user
+      const userRow = await tx.$queryRawUnsafe<{ id: string }[]>(
+        `SELECT id FROM buyer_portal_users WHERE email = $1 LIMIT 1`,
+        email,
+      );
+      if (userRow[0]) {
+        const token = `demo_${email.split('@')[0].replace(/\./g, '_')}_${Date.now().toString(36)}`;
+        await tx.$executeRawUnsafe(
+          `INSERT INTO buyer_portal_invites (portal_user_id, invite_token, expires_at)
+           SELECT $1::uuid, $2, NOW() + INTERVAL '14 days'
+            WHERE NOT EXISTS (
+              SELECT 1 FROM buyer_portal_invites
+               WHERE portal_user_id = $1::uuid AND accepted_at IS NULL AND expires_at > NOW()
+            )`,
+          userRow[0].id,
+          token,
+        );
+      }
+    }
+  });
 }
 
 async function main() {

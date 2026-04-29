@@ -18,6 +18,7 @@ import { ShipmentModule } from '../modules/shipment/shipment.module';
 import { HrModule } from '../modules/hr/hr.module';
 import { FinanceModule } from '../modules/finance/finance.module';
 import { ComplianceModule } from '../modules/compliance/compliance.module';
+import { BuyerPortalModule } from '../modules/buyer-portal/buyer-portal.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ComplianceModule } from '../modules/compliance/compliance.module';
     HrModule,
     FinanceModule,
     ComplianceModule,
+    BuyerPortalModule,
   ],
 })
 export class AppModule {}

@@ -88,6 +88,11 @@ export const appRoutes: Route[] = [
           import('./features/compliance/compliance.component').then((m) => m.ComplianceComponent),
       },
       {
+        path: 'buyer-portal',
+        loadComponent: () =>
+          import('./features/buyer-portal/buyer-portal.component').then((m) => m.BuyerPortalComponent),
+      },
+      {
         path: 'analytics',
         loadComponent: () =>
           import('./features/placeholder/placeholder.component').then((m) => m.PlaceholderComponent),

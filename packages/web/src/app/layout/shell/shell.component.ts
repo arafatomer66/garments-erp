@@ -87,6 +87,7 @@ export class ShellComponent {
     { label: 'HR & Payroll', icon: 'pi-users', path: '/hr' },
     { label: 'Finance & VAT', icon: 'pi-dollar', path: '/finance' },
     { label: 'Compliance', icon: 'pi-shield', path: '/compliance' },
+    { label: 'Buyer Portal', icon: 'pi-id-card', path: '/buyer-portal' },
     { label: 'Analytics', icon: 'pi-chart-bar', path: '/analytics' },
     { label: 'Settings', icon: 'pi-cog', path: '/settings' },
   ];
