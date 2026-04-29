@@ -17,6 +17,7 @@
 ## Table of contents
 
 - [Why this exists](#why-this-exists)
+- [Screenshots](#screenshots)
 - [What's inside](#whats-inside)
 - [Stack](#stack)
 - [Quickstart](#quickstart)
@@ -51,6 +52,16 @@
 Bangladesh has **4,000+ active garments factories** — the country's largest export industry, contributing ~84% of national export revenue. Most SME-tier factories (50–500 machines) still run on **Excel + paper**. Existing solutions (SAP, BMSL, Fast React) are either too expensive (USD 50k–500k+) or not tailored to BD workflows: T&A calendars, BGMEA UD compliance, BTMA, NBR VAT/AIT, GSP/CO export forms, BD bank EXP form, biometric attendance, piece-rate payroll, festival bonus, Eid leave.
 
 **This ERP is built for them.** Modern Angular UI, multi-tenant SaaS architecture, and BD-first workflows baked in.
+
+---
+
+## Screenshots
+
+### Executive Dashboard
+
+The MD's morning view — 8 headline KPIs, today's alerts, live production lines, WIP funnel, DHU sparkline, on-time donut, order pipeline, top buyers.
+
+![Dashboard](docs/screenshots/dashboard.png)
 
 ---
 
